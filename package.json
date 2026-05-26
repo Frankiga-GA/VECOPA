@@ -1,0 +1,23 @@
+{
+  "name": "vecopa",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Vecopa web POS responsive para HORECA.",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @vecopa/web",
+    "dev:web": "npm run dev --workspace @vecopa/web",
+    "dev:api": "npm run start:dev --workspace @vecopa/api",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "prisma:generate": "npm run prisma:generate --workspace @vecopa/api",
+    "prisma:migrate": "npm run prisma:migrate --workspace @vecopa/api",
+    "seed": "npm run seed --workspace @vecopa/api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

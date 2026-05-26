@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  administrador
+  cajero
+  mozo
+}
+
+enum TableStatus {
+  libre
+  ocupada
+  reservada
+}
+
+enum OrderStatus {
+  abierto
+  pagado
+  cancelado
+}
+
+enum PaymentMethod {
+  YAPE
+  PLIN
+  EFECTIVO
+}
+
+enum CashRegisterStatus {
+  abierta
+  cerrada
+}
+
+enum TransactionType {
+  apertura
+  ingreso
+  egreso
+  cierre
+}
+
+model Role {
+  id        String   @id @default(uuid())
+  name      RoleName @unique
+  users     User[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("roles")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  roleId       String    @map("role_id")
+  role         Role      @relation(fields: [roleId], references: [id])
+  deletedAt    DateTime? @map("deleted_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String
+  color     String    @default("#0f766e")
+  products  Product[]
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("categories")
+}
+
+model Product {
+  id         String      @id @default(uuid())
+  name       String
+  price      Decimal     @db.Decimal(10, 2)
+  stock      Int         @default(0)
+  active     Boolean     @default(true)
+  categoryId String      @map("category_id")
+  category   Category    @relation(fields: [categoryId], references: [id])
+  orderItems OrderItem[]
+  deletedAt  DateTime?   @map("deleted_at")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  @@index([categoryId])
+  @@map("products")
+}
+
+model DiningTable {
+  id        String      @id @default(uuid())
+  name      String
+  capacity  Int
+  status    TableStatus @default(libre)
+  orders    Order[]
+  deletedAt DateTime?   @map("deleted_at")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  @@map("tables")
+}
+
+model Order {
+  id        String      @id @default(uuid())
+  tableId   String      @map("table_id")
+  table     DiningTable @relation(fields: [tableId], references: [id])
+  status    OrderStatus @default(abierto)
+  waiter    String
+  notes     String?
+  items     OrderItem[]
+  payments  Payment[]
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  @@index([tableId, status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String   @map("order_id")
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal  @map("unit_price") @db.Decimal(10, 2)
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  orderId   String        @map("order_id")
+  order     Order         @relation(fields: [orderId], references: [id])
+  method    PaymentMethod
+  amount    Decimal       @db.Decimal(10, 2)
+  reference String?
+  confirmed Boolean       @default(false)
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  @@index([method, createdAt])
+  @@map("payments")
+}
+
+model CashRegister {
+  id            String             @id @default(uuid())
+  openedBy      String             @map("opened_by")
+  openingAmount Decimal            @map("opening_amount") @db.Decimal(10, 2)
+  closingAmount Decimal?           @map("closing_amount") @db.Decimal(10, 2)
+  status        CashRegisterStatus @default(abierta)
+  transactions  Transaction[]
+  openedAt      DateTime           @default(now()) @map("opened_at")
+  closedAt      DateTime?          @map("closed_at")
+
+  @@map("cash_registers")
+}
+
+model Transaction {
+  id             String          @id @default(uuid())
+  cashRegisterId String          @map("cash_register_id")
+  cashRegister   CashRegister    @relation(fields: [cashRegisterId], references: [id])
+  type           TransactionType
+  amount         Decimal         @db.Decimal(10, 2)
+  note           String
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  @@index([cashRegisterId])
+  @@map("transactions")
+}
